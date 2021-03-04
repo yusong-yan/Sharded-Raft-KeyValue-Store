@@ -17,7 +17,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/yusong-yan/Sharded-raftKV/src/raft"
+	"github.com/yusong-yan/Sharded-raftKV/src//raft"
 )
 
 func randstring(n int) string {
