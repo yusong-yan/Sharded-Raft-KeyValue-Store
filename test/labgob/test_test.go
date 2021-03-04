@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/yusong-yan/Sharded-raftKV/src/labgob"
+	"github.com/yusong-yan/Sharded-RaftKV/src/labgob"
 )
 
 type T1 struct {
