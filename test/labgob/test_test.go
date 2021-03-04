@@ -28,7 +28,7 @@ type T3 struct {
 // test that we didn't break GOB.
 //
 func TestGOB(t *testing.T) {
-	e0 := labgob.errorCount
+	e0 := labgob.ErrorCount
 
 	w := new(bytes.Buffer)
 
@@ -105,7 +105,7 @@ func TestGOB(t *testing.T) {
 		}
 	}
 
-	if labgob.errorCount != e0 {
+	if labgob.ErrorCount != e0 {
 		t.Fatalf("there were errors, but should not have been")
 	}
 }
@@ -120,7 +120,7 @@ type T4 struct {
 // labgob prints one warning during this test.
 //
 func TestCapital(t *testing.T) {
-	e0 := labgob.errorCount
+	e0 := labgob.ErrorCount
 
 	v := []map[*T4]int{}
 
@@ -134,7 +134,7 @@ func TestCapital(t *testing.T) {
 	d := labgob.NewDecoder(r)
 	d.Decode(&v1)
 
-	if labgob.errorCount != e0+1 {
+	if labgob.ErrorCount != e0+1 {
 		t.Fatalf("failed to warn about lower-case field")
 	}
 }
@@ -147,7 +147,7 @@ func TestCapital(t *testing.T) {
 // labgob does not print a warning.
 //
 func TestDefault(t *testing.T) {
-	e0 := labgob.errorCount
+	e0 := labgob.ErrorCount
 
 	type DD struct {
 		X int
@@ -169,7 +169,7 @@ func TestDefault(t *testing.T) {
 	d := labgob.NewDecoder(r)
 	d.Decode(&reply)
 
-	if labgob.errorCount != e0+1 {
+	if labgob.ErrorCount != e0+1 {
 		t.Fatalf("failed to warn about decoding into non-default value")
 	}
 }

@@ -18,7 +18,7 @@ import (
 )
 
 var mu sync.Mutex
-var errorCount int // for TestCapital
+var ErrorCount int // for TestCapital
 var checked map[reflect.Type]bool
 
 type LabEncoder struct {
@@ -96,7 +96,7 @@ func checkType(t reflect.Type) {
 				fmt.Printf("labgob error: lower-case field %v of %v in RPC or persist/snapshot will break your Raft\n",
 					f.Name, t.Name())
 				mu.Lock()
-				errorCount += 1
+				ErrorCount += 1
 				mu.Unlock()
 			}
 			checkType(f.Type)
@@ -160,7 +160,7 @@ func checkDefault1(value reflect.Value, depth int, name string) {
 		reflect.String:
 		if reflect.DeepEqual(reflect.Zero(t).Interface(), value.Interface()) == false {
 			mu.Lock()
-			if errorCount < 1 {
+			if ErrorCount < 1 {
 				what := name
 				if what == "" {
 					what = t.Name()
@@ -171,7 +171,7 @@ func checkDefault1(value reflect.Value, depth int, name string) {
 				fmt.Printf("labgob warning: Decoding into a non-default variable/field %v may not work\n",
 					what)
 			}
-			errorCount += 1
+			ErrorCount += 1
 			mu.Unlock()
 		}
 		return

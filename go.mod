@@ -1,3 +1,3 @@
 module github.com/yusong-yan/Sharded-RaftKV
 
-go 1.14
+go 1.16
