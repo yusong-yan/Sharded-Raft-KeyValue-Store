@@ -4,7 +4,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/yusong-yan/Sharded-RaftKV/src/labrpc"
+	"Sharded-RaftKV/src/labrpc"
 
 	// import "log"
 	crand "crypto/rand"
@@ -17,8 +17,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/yusong-yan/Sharded-RaftKV/src/kvraft"
-	"github.com/yusong-yan/Sharded-RaftKV/src/raft"
+	"Sharded-RaftKV/src/kvraft"
+	"Sharded-RaftKV/src/raft"
 )
 
 func randstring(n int) string {

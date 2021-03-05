@@ -7,9 +7,9 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/yusong-yan/Sharded-RaftKV/src/labgob"
-	"github.com/yusong-yan/Sharded-RaftKV/src/labrpc"
-	"github.com/yusong-yan/Sharded-RaftKV/src/raft"
+	"Sharded-RaftKV/src/labgob"
+	"Sharded-RaftKV/src/labrpc"
+	"Sharded-RaftKV/src/raft"
 )
 
 const Debug = 0

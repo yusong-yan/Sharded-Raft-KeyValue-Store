@@ -59,7 +59,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/yusong-yan/Sharded-RaftKV/src/labgob"
+	"Sharded-RaftKV/src/labgob"
 )
 
 type reqMsg struct {

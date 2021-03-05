@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/yusong-yan/Sharded-RaftKV/src/labrpc"
+	"Sharded-RaftKV/src/labrpc"
 )
 
 type JunkArgs struct {

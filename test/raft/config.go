@@ -15,8 +15,8 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/yusong-yan/Sharded-RaftKV/src/labrpc"
-	"github.com/yusong-yan/Sharded-RaftKV/src/raft"
+	"Sharded-RaftKV/src/labrpc"
+	"Sharded-RaftKV/src/raft"
 
 	crand "crypto/rand"
 	"encoding/base64"

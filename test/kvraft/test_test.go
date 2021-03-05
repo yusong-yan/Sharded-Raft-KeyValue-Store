@@ -12,9 +12,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/yusong-yan/Sharded-RaftKV/src/kvraft"
-	"github.com/yusong-yan/Sharded-RaftKV/src/models"
-	"github.com/yusong-yan/Sharded-RaftKV/src/porcupine"
+	"Sharded-RaftKV/src/kvraft"
+	"Sharded-RaftKV/src/models"
+	"Sharded-RaftKV/src/porcupine"
 )
 
 // The tester generously allows solutions to complete elections in one second

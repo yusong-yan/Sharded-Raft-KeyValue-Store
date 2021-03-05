@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/yusong-yan/Sharded-RaftKV/src/porcupine"
+	"Sharded-RaftKV/src/porcupine"
 )
 
 type KvInput struct {
