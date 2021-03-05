@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"../labrpc"
+	"github.com/yusong-yan/Sharded-RaftKV/src/labrpc"
 )
 
 type Clerk struct {

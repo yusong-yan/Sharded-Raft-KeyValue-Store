@@ -7,9 +7,9 @@ import (
 	"sync/atomic"
 	"time"
 
-	"../labgob"
-	"../labrpc"
-	"../raft"
+	"github.com/yusong-yan/Sharded-RaftKV/src/labgob"
+	"github.com/yusong-yan/Sharded-RaftKV/src/labrpc"
+	"github.com/yusong-yan/Sharded-RaftKV/src/raft"
 )
 
 const Debug = 0
@@ -32,7 +32,7 @@ type Op struct {
 type KVServer struct {
 	mu           sync.Mutex
 	me           int
-	rf           *raft.Raft
+	Rf           *raft.Raft
 	applyCh      chan raft.ApplyMsg
 	dead         int32 // set by Kill()
 	maxraftstate int   // snapshot if log grows this big
@@ -44,7 +44,7 @@ type KVServer struct {
 func (kv *KVServer) Get(args *GetArgs, reply *GetReply) {
 	if kv.isLeader() {
 		op := Op{Gett, args.Key, "", args.Client, args.Id}
-		_, _, Success := kv.rf.Start(op)
+		_, _, Success := kv.Rf.Start(op)
 		if Success {
 			for i := 0; i < 10; i++ {
 				if kv.existIdWithLock(args.Id, args.Client) {
@@ -75,7 +75,7 @@ func (kv *KVServer) Get(args *GetArgs, reply *GetReply) {
 func (kv *KVServer) PutAppend(args *PutAppendArgs, reply *PutAppendReply) {
 	if kv.isLeader() {
 		op := Op{args.Op, args.Key, args.Value, args.Client, args.Id}
-		_, _, Success := kv.rf.Start(op)
+		_, _, Success := kv.Rf.Start(op)
 		if Success {
 			for i := 0; i < 10; i++ {
 				if kv.existIdWithLock(args.Id, args.Client) {
@@ -102,7 +102,7 @@ func (kv *KVServer) PutAppend(args *PutAppendArgs, reply *PutAppendReply) {
 }
 
 func (kv *KVServer) isLeader() bool {
-	_, isLeader := kv.rf.GetState()
+	_, isLeader := kv.Rf.GetState()
 	return isLeader
 }
 
@@ -161,7 +161,7 @@ func (kv *KVServer) existKeyWithLock(id string) bool {
 
 func (kv *KVServer) Kill() {
 	atomic.StoreInt32(&kv.dead, 1)
-	kv.rf.Kill()
+	kv.Rf.Kill()
 	// Your code here, if desired.
 }
 
@@ -176,7 +176,7 @@ func StartKVServer(servers []*labrpc.ClientEnd, me int, persister *raft.Persiste
 	kv.me = me
 	kv.maxraftstate = maxraftstate
 	kv.applyCh = make(chan raft.ApplyMsg, 1)
-	kv.rf = raft.Make(servers, me, persister, kv.applyCh)
+	kv.Rf = raft.Make(servers, me, persister, kv.applyCh)
 	kv.storage = map[string]string{}
 	kv.idTable = map[int64]map[int64]Op{}
 	go kv.listenApplyCh()

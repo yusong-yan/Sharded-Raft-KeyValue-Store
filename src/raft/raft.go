@@ -7,8 +7,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"../labgob"
-	"../labrpc"
+	"github.com/yusong-yan/Sharded-RaftKV/src/labgob"
+	"github.com/yusong-yan/Sharded-RaftKV/src/labrpc"
 )
 
 type Raft struct {

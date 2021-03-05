@@ -12,8 +12,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/yusong-yan/Sharded-raftKV/src/models"
-	"github.com/yusong-yan/Sharded-raftKV/src/porcupine"
+	"github.com/yusong-yan/Sharded-RaftKV/src/kvraft"
+	"github.com/yusong-yan/Sharded-RaftKV/src/models"
+	"github.com/yusong-yan/Sharded-RaftKV/src/porcupine"
 )
 
 // The tester generously allows solutions to complete elections in one second
@@ -23,23 +24,23 @@ const electionTimeout = 1 * time.Second
 const linearizabilityCheckTimeout = 1 * time.Second
 
 // get/put/putappend that keep counts
-func Get(cfg *config, ck *Clerk, key string) string {
+func Get(cfg *config, ck *kvraft.Clerk, key string) string {
 	v := ck.Get(key)
 	cfg.op()
 	return v
 }
 
-func Put(cfg *config, ck *Clerk, key string, value string) {
+func Put(cfg *config, ck *kvraft.Clerk, key string, value string) {
 	ck.Put(key, value)
 	cfg.op()
 }
 
-func Append(cfg *config, ck *Clerk, key string, value string) {
+func Append(cfg *config, ck *kvraft.Clerk, key string, value string) {
 	ck.Append(key, value)
 	cfg.op()
 }
 
-func check(cfg *config, t *testing.T, ck *Clerk, key string, value string) {
+func check(cfg *config, t *testing.T, ck *kvraft.Clerk, key string, value string) {
 	v := Get(cfg, ck, key)
 	if v != value {
 		t.Fatalf("Get(%v): expected:\n%v\nreceived:\n%v", key, value, v)
@@ -47,7 +48,7 @@ func check(cfg *config, t *testing.T, ck *Clerk, key string, value string) {
 }
 
 // a client runs the function f and then signals it is done
-func run_client(t *testing.T, cfg *config, me int, ca chan bool, fn func(me int, ck *Clerk, t *testing.T)) {
+func run_client(t *testing.T, cfg *config, me int, ca chan bool, fn func(me int, ck *kvraft.Clerk, t *testing.T)) {
 	ok := false
 	defer func() { ca <- ok }()
 	ck := cfg.makeClient(cfg.All())
@@ -57,7 +58,7 @@ func run_client(t *testing.T, cfg *config, me int, ca chan bool, fn func(me int,
 }
 
 // spawn ncli clients and wait until they are all done
-func spawn_clients_and_wait(t *testing.T, cfg *config, ncli int, fn func(me int, ck *Clerk, t *testing.T)) {
+func spawn_clients_and_wait(t *testing.T, cfg *config, ncli int, fn func(me int, ck *kvraft.Clerk, t *testing.T)) {
 	ca := make([]chan bool, ncli)
 	for cli := 0; cli < ncli; cli++ {
 		ca[cli] = make(chan bool)
@@ -198,7 +199,7 @@ func GenericTest(t *testing.T, part string, nclients int, unreliable bool, crash
 		// log.Printf("Iteration %v\n", i)
 		atomic.StoreInt32(&done_clients, 0)
 		atomic.StoreInt32(&done_partitioner, 0)
-		go spawn_clients_and_wait(t, cfg, nclients, func(cli int, myck *Clerk, t *testing.T) {
+		go spawn_clients_and_wait(t, cfg, nclients, func(cli int, myck *kvraft.Clerk, t *testing.T) {
 			j := 0
 			defer func() {
 				clnts[cli] <- j
@@ -341,7 +342,7 @@ func GenericTestLinearizability(t *testing.T, part string, nclients int, nserver
 		// log.Printf("Iteration %v\n", i)
 		atomic.StoreInt32(&done_clients, 0)
 		atomic.StoreInt32(&done_partitioner, 0)
-		go spawn_clients_and_wait(t, cfg, nclients, func(cli int, myck *Clerk, t *testing.T) {
+		go spawn_clients_and_wait(t, cfg, nclients, func(cli int, myck *kvraft.Clerk, t *testing.T) {
 			j := 0
 			defer func() {
 				clnts[cli] <- j
@@ -476,7 +477,7 @@ func TestUnreliableOneKey3A(t *testing.T) {
 
 	const nclient = 5
 	const upto = 10
-	spawn_clients_and_wait(t, cfg, nclient, func(me int, myck *Clerk, t *testing.T) {
+	spawn_clients_and_wait(t, cfg, nclient, func(me int, myck *kvraft.Clerk, t *testing.T) {
 		n := 0
 		for n < upto {
 			Append(cfg, myck, "k", "x "+strconv.Itoa(me)+" "+strconv.Itoa(n)+" y")
