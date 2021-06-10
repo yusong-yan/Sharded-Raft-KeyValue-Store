@@ -2,7 +2,10 @@ package raft
 
 import (
 	"bytes"
+	"encoding/json"
 	"math/rand"
+	"os"
+	"strconv"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -33,13 +36,23 @@ type Raft struct {
 	LastApply               int
 	ApplyChan               chan ApplyMsg
 	ApplyBuffer             chan bool
+	Test                    bool     // for run
+	PeersRun                []string // for run
+	Network                 int      //for run
 }
 
 func Make(peers []*labrpc.ClientEnd, me int,
 	persister *Persister, applyCh chan ApplyMsg) *Raft {
 	rf := &Raft{}
 	rf.Peers = peers
+	rf.Test = true
 	rf.persister = persister
+	setRaft(rf, me, applyCh)
+	rf.readPersist(persister.ReadRaftState())
+	return rf
+}
+
+func setRaft(rf *Raft, me int, applyCh chan ApplyMsg) {
 	rf.Me = me
 	rf.State = Follwer
 	rf.Log = []Entry{}
@@ -64,8 +77,6 @@ func Make(peers []*labrpc.ClientEnd, me int,
 		rf.PeerAlive[server] = true
 	}
 	go rf.startElection()
-	rf.readPersist(persister.ReadRaftState())
-	return rf
 }
 
 func generateTime() int {
@@ -111,8 +122,8 @@ func (rf *Raft) startAsCand(interval int) int {
 		time.Sleep(time.Duration(interval-20) * time.Millisecond)
 		rf.mu.Lock()
 		*needReturn = true
-		rf.mu.Unlock()
 		cond.Signal()
+		rf.mu.Unlock()
 	}(&needReturn, cond)
 
 	//setup args and rf
@@ -143,8 +154,8 @@ func (rf *Raft) startAsCand(interval int) int {
 			if !ok || needReturn {
 				rf.mu.Lock()
 				hearedBack++
-				rf.mu.Unlock()
 				cond.Signal()
+				rf.mu.Unlock()
 				return
 			}
 			rf.mu.Lock()
@@ -155,16 +166,16 @@ func (rf *Raft) startAsCand(interval int) int {
 				rf.setFollwer()
 				rf.Term = reply.Term
 				rf.persist()
-				rf.mu.Unlock()
 				cond.Signal()
+				rf.mu.Unlock()
 				return
 			}
 
 			if reply.VoteGranted == true && rf.State == Cand {
 				votes++
 			}
-			rf.mu.Unlock()
 			cond.Signal()
+			rf.mu.Unlock()
 		}()
 	}
 	//wait
@@ -302,8 +313,8 @@ func (rf *Raft) Start(Command interface{}) (int, int, bool) {
 				if ok {
 					hearedBackSuccess++
 				}
-				rf.mu.Unlock()
 				cond.Signal()
+				rf.mu.Unlock()
 			}()
 		}
 
@@ -442,13 +453,22 @@ func (rf *Raft) startApply(CommitIndex int) {
 }
 
 func (rf *Raft) persist() {
-	w := new(bytes.Buffer)
-	e := labgob.NewEncoder(w)
-	e.Encode(rf.Term)
-	e.Encode(rf.VotedFor)
-	e.Encode(rf.Log)
-	data := w.Bytes()
-	rf.persister.SaveRaftState(data)
+	if rf.Test {
+		w := new(bytes.Buffer)
+		e := labgob.NewEncoder(w)
+		e.Encode(rf.Term)
+		e.Encode(rf.VotedFor)
+		e.Encode(rf.Log)
+		data := w.Bytes()
+		rf.persister.SaveRaftState(data)
+	} else {
+		fileName := strconv.Itoa(rf.Me) + ".yys"
+		ofile, _ := os.Create(fileName)
+		e := json.NewEncoder(ofile)
+		e.Encode(rf.Term)
+		e.Encode(rf.VotedFor)
+		e.Encode(rf.Log)
+	}
 }
 
 func (rf *Raft) readPersist(data []byte) {
