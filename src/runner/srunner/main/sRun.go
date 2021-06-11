@@ -1,12 +1,15 @@
 package main
 
+// This file is for running the server
 import (
-	"Sharded-RaftKV/src/kvraft"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
 	"strings"
 	"unicode"
+
+	"Sharded-RaftKV/src/kvraft"
 )
 
 func readfile(fileName string) []string {
@@ -25,6 +28,19 @@ func readfile(fileName string) []string {
 }
 
 func main() {
-	servers := readfile("../../srunner/main/servers.txt")
-	kvraft.MakeClerkRun(servers)
+	fmt.Print("Please provide host port: ")
+	var port string
+	fmt.Scan(&port)
+	servers := readfile("servers.txt")
+	me := -1
+	for k, v := range servers {
+		if v == port {
+			me = k
+			break
+		}
+	}
+	if me == -1 {
+		panic("Couldn't find port in the server.txt")
+	}
+	kvraft.StartKVServerRun(servers, me, -1)
 }

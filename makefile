@@ -16,9 +16,9 @@ kvTest3B:
 
 # Run client or server.
 client:
-	cd src/runner/crunner/main && go run crunner.go
+	cd src/runner/crunner/main && go run cRun.go
 server:
-	cd src/runner/srunner/main && go run srunner.go
+	cd src/runner/srunner/main && go run sRun.go
 # Usually you should run 3 or more servers and as many clients as you want
 
 # for server, you should give a port number

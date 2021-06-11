@@ -1,5 +1,7 @@
 package kvraft
 
+// This file is for running the server
+
 import (
 	"fmt"
 	"net/rpc"

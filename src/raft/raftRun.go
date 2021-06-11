@@ -1,5 +1,7 @@
 package raft
 
+// This file is for running the server
+
 import (
 	"errors"
 	"fmt"

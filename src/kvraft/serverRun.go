@@ -1,5 +1,7 @@
 package kvraft
 
+// This file is for running the server
+
 import (
 	"Sharded-RaftKV/src/labgob"
 	"Sharded-RaftKV/src/raft"
