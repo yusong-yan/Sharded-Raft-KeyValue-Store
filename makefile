@@ -19,6 +19,8 @@ client:
 	cd src/runner/crunner/main && go run cRun.go
 server:
 	cd src/runner/srunner/main && go run sRun.go
+cleanPersist:
+	cd src/runner/srunner/main && rm *.yys
 # Usually you should run 3 or more servers and as many clients as you want
 
 # for server, you should give a port number
