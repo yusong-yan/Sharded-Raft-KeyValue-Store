@@ -1,35 +1,45 @@
 package raft
 
 import (
-	"encoding/json"
+	"errors"
 	"fmt"
-	"os"
+	"log"
+	"net"
+	"net/http"
+	"net/rpc"
 	"strconv"
 )
 
-func MakeRun(peersRun []string, me int, applyCh chan ApplyMsg) *Raft {
-	rf := &Raft{}
+type Op struct {
+	OpTask string
+	Key    string
+	Value  string
+	Client int64
+	Id     int64
+}
+
+func MakeRun(rf *Raft, peersRun []string, me int, applyCh chan ApplyMsg) *Raft {
 	rf.PeersRun = peersRun
 	rf.Test = false
 	rf.Network = Connect
+	rf.PeerNumber = len(peersRun)
 	setRaft(rf, me, applyCh)
-	rf.readPersistRun()
 	return rf
 }
 
-func (rf *Raft) connect() {
+func (rf *Raft) Connect() {
 	rf.mu.Lock()
 	defer rf.mu.Unlock()
 	rf.Network = Connect
 }
 
-func (rf *Raft) disconnect() {
+func (rf *Raft) Disconnect() {
 	rf.mu.Lock()
 	defer rf.mu.Unlock()
 	rf.Network = Disconnect
 }
 
-func (rf *Raft) printLog() {
+func (rf *Raft) PrintLog() {
 	rf.mu.Lock()
 	var state string
 	if rf.State == Leader {
@@ -44,40 +54,82 @@ func (rf *Raft) printLog() {
 	for _, vs := range rf.Log {
 		fmt.Print("Command: ")
 		fmt.Print(vs.Command)
-		fmt.Print(", Id: ")
-		fmt.Print(vs.Id)
 		fmt.Println()
 	}
 	fmt.Print("-----------------------------------------\n\n")
 	rf.mu.Unlock()
 }
 
-func (rf *Raft) readPersistRun() {
-	fileName := strconv.Itoa(rf.Me) + ".yys"
-	file, err := os.Open(fileName)
+func (rf *Raft) setup() {
+	//readfile
+	fmt.Println("\nAll peers:  ", rf.PeersRun)
+
+	//setup my own server
+	conn, err := net.Listen("tcp", ":"+rf.PeersRun[rf.Me])
 	if err != nil {
-		fmt.Println(fileName, " is not created")
-		return
+		log.Fatal("Listen:", err)
 	}
-	d := json.NewDecoder(file)
-	var CurrentTerm int
-	var VotedFor int
-	var Logs []Entry
-	d.Decode(&CurrentTerm)
-	d.Decode(&VotedFor)
-	d.Decode(&Logs)
-	rf.Term = CurrentTerm
-	rf.VotedFor = VotedFor
-	rf.Log = Logs
-	fmt.Println("\nREAD FROM DISK--------------")
-	fmt.Println("Term: ", rf.Term)
-	fmt.Println("VotedFor", rf.VotedFor)
-	for _, vs := range rf.Log {
-		fmt.Print("Command: ")
-		fmt.Print(vs.Command)
-		fmt.Print(", Id: ")
-		fmt.Print(vs.Id)
-		fmt.Println()
+	err = rpc.RegisterName("Raft", rf)
+	if err != nil {
+		log.Fatal("Raft:", err)
 	}
-	fmt.Println("----------------------------")
+	rpc.HandleHTTP()
+	fmt.Println("\nSETUP SERVER DONE")
+	go http.Serve(conn, nil)
+}
+
+//wrapper for call to check network status
+func (rf *Raft) call(rpcname string, server string, args interface{}, reply interface{}) bool {
+	rf.mu.Lock()
+	if rf.Network == Connect {
+		rf.mu.Unlock()
+		return call(rpcname, server, args, reply)
+	} else {
+		rf.mu.Unlock()
+		return false
+	}
+}
+
+//setup rpc
+func call(rpcname string, server string, args interface{}, reply interface{}) bool {
+	c, err := rpc.DialHTTP("tcp", ":"+server)
+	if err != nil {
+		return false
+	}
+	defer c.Close()
+
+	err = c.Call(rpcname, args, reply)
+	if err != nil {
+		//fmt.Println(err)
+		return false
+	}
+	return true
+}
+
+func (rf *Raft) HandleAppendEntriesRun(args *AppendEntriesArgs, reply *AppendEntriesReply) error {
+	err := rf.checkNetwork()
+	if err != nil {
+		return err
+	}
+	rf.HandleAppendEntries(args, reply)
+	return nil
+}
+
+func (rf *Raft) HandleRequestVoteRun(args *RequestVoteArgs, reply *RequestVoteReply) error {
+	err := rf.checkNetwork()
+	if err != nil {
+		return err
+	}
+	rf.HandleRequestVote(args, reply)
+	return nil
+}
+
+func (rf *Raft) checkNetwork() error {
+	rf.mu.Lock()
+	if rf.Network == Disconnect {
+		rf.mu.Unlock()
+		return errors.New("SERVER " + strconv.Itoa(rf.Me) + " DISCONNECT")
+	}
+	rf.mu.Unlock()
+	return nil
 }

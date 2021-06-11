@@ -2,6 +2,7 @@ package kvraft
 
 import (
 	"crypto/rand"
+	"fmt"
 	"math/big"
 	"sync"
 	"time"
@@ -13,6 +14,11 @@ type Clerk struct {
 	servers  []*labrpc.ClientEnd
 	mu       sync.Mutex
 	clientId int64
+
+	Test       bool     //for run
+	serversRun []string //for run
+
+	serverNumber int
 }
 
 func nrand() int64 {
@@ -25,7 +31,9 @@ func nrand() int64 {
 func MakeClerk(servers []*labrpc.ClientEnd) *Clerk {
 	ck := new(Clerk)
 	ck.servers = servers
+	ck.serverNumber = len(servers)
 	ck.clientId = time.Now().UnixNano()
+	ck.Test = true
 	return ck
 }
 
@@ -37,15 +45,21 @@ func (ck *Clerk) Get(key string) string {
 	args.Client = ck.clientId
 	args.Key = key
 	for {
-		for i := 0; i < len(ck.servers); i++ {
+		for i := 0; i < ck.serverNumber; i++ {
 			reply := GetReply{}
-			ok := ck.servers[i].Call("KVServer.Get", &args, &reply)
+			var ok bool
+			if ck.Test {
+				ok = ck.servers[i].Call("KVServer.Get", &args, &reply)
+			} else {
+				ok = call("KVServer.GetRun", ck.serversRun[i], &args, &reply)
+			}
 			if ok {
 				if reply.Err == OK {
 					return reply.Value
 				}
 			}
 		}
+		fmt.Println("Retrying")
 		time.Sleep(50 * time.Microsecond)
 	}
 }
@@ -61,9 +75,15 @@ func (ck *Clerk) PutAppend(key string, value string, op string) {
 	args.Key = key
 	args.Id = time.Now().UnixNano()
 	for {
-		for i := 0; i < len(ck.servers); i++ {
+		for i := 0; i < ck.serverNumber; i++ {
 			reply := PutAppendReply{}
-			ok := ck.servers[i].Call("KVServer.PutAppend", &args, &reply)
+			var ok bool
+			if ck.Test {
+				ok = ck.servers[i].Call("KVServer.PutAppend", &args, &reply)
+			} else {
+				ok = call("KVServer.PutAppendRun", ck.serversRun[i], &args, &reply)
+			}
+
 			if ok {
 				if reply.Err == OK {
 					return
@@ -71,6 +91,7 @@ func (ck *Clerk) PutAppend(key string, value string, op string) {
 			}
 			//time.Sleep(20 * time.Millisecond)
 		}
+		fmt.Println("Retrying")
 		time.Sleep(50 * time.Microsecond)
 	}
 }

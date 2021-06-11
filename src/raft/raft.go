@@ -3,9 +3,9 @@ package raft
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"math/rand"
 	"os"
-	"strconv"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -36,6 +36,7 @@ type Raft struct {
 	LastApply               int
 	ApplyChan               chan ApplyMsg
 	ApplyBuffer             chan bool
+	PeerNumber              int
 	Test                    bool     // for run
 	PeersRun                []string // for run
 	Network                 int      //for run
@@ -45,6 +46,7 @@ func Make(peers []*labrpc.ClientEnd, me int,
 	persister *Persister, applyCh chan ApplyMsg) *Raft {
 	rf := &Raft{}
 	rf.Peers = peers
+	rf.PeerNumber = len(peers)
 	rf.Test = true
 	rf.persister = persister
 	setRaft(rf, me, applyCh)
@@ -53,6 +55,7 @@ func Make(peers []*labrpc.ClientEnd, me int,
 }
 
 func setRaft(rf *Raft, me int, applyCh chan ApplyMsg) {
+	//rf.setup()
 	rf.Me = me
 	rf.State = Follwer
 	rf.Log = []Entry{}
@@ -70,7 +73,7 @@ func setRaft(rf *Raft, me int, applyCh chan ApplyMsg) {
 	rf.ApplyChan = applyCh
 	rf.CommitIndex = 0
 	rf.LastApply = 0
-	for i := 0; i < len(rf.Peers); i++ {
+	for i := 0; i < rf.PeerNumber; i++ {
 		server := i
 		rf.NextIndex[server] = rf.getLastLogEntryWithoutLock().Index + 1
 		rf.MatchIndex[server] = 0
@@ -141,7 +144,7 @@ func (rf *Raft) startAsCand(interval int) int {
 	args.LastLogTerm = rf.termForLog(args.LastLogIndex)
 	rf.persist()
 	rf.mu.Unlock()
-	for s := 0; s < len(rf.Peers); s++ {
+	for s := 0; s < rf.PeerNumber; s++ {
 		server := s
 		if server == rf.Me {
 			continue
@@ -180,11 +183,11 @@ func (rf *Raft) startAsCand(interval int) int {
 	}
 	//wait
 	rf.mu.Lock()
-	for hearedBack != len(rf.Peers) && votes <= len(rf.Peers)/2 && needReturn == false && rf.State == Cand {
+	for hearedBack != rf.PeerNumber && votes <= rf.PeerNumber/2 && needReturn == false && rf.State == Cand {
 		cond.Wait()
 	}
 	//decide
-	if votes > len(rf.Peers)/2 && rf.State == Cand && needReturn == false {
+	if votes > rf.PeerNumber/2 && rf.State == Cand && needReturn == false {
 		rf.mu.Unlock()
 		return Win
 	} else {
@@ -195,7 +198,7 @@ func (rf *Raft) startAsCand(interval int) int {
 
 func (rf *Raft) startAsLeader() {
 	rf.mu.Lock()
-	for i := 0; i < len(rf.Peers); i++ {
+	for i := 0; i < rf.PeerNumber; i++ {
 		server := i
 		rf.NextIndex[server] = rf.getLastLogEntryWithoutLock().Index + 1
 		rf.MatchIndex[server] = 0
@@ -221,7 +224,7 @@ func (rf *Raft) sendHeartBeat() {
 	if rf.getState() == Leader {
 		hearedBack := 1
 		hearedBackSuccess := 1
-		for s := 0; s < len(rf.Peers); s++ {
+		for s := 0; s < rf.PeerNumber; s++ {
 			server := s
 			if server == rf.Me {
 				continue
@@ -301,7 +304,7 @@ func (rf *Raft) Start(Command interface{}) (int, int, bool) {
 		Index = rf.getLastLogEntryWithoutLock().Index
 		rf.persist()
 		rf.mu.Unlock()
-		for i := 0; i < len(rf.Peers); i++ {
+		for i := 0; i < rf.PeerNumber; i++ {
 			server := i
 			if server == rf.Me {
 				continue
@@ -320,7 +323,7 @@ func (rf *Raft) Start(Command interface{}) (int, int, bool) {
 
 		//wait
 		rf.mu.Lock()
-		for hearedBack != len(rf.Peers) && rf.CommitIndex < Index && rf.IsLeader {
+		for hearedBack != rf.PeerNumber && rf.CommitIndex < Index && rf.IsLeader {
 			cond.Wait()
 		}
 
@@ -330,9 +333,11 @@ func (rf *Raft) Start(Command interface{}) (int, int, bool) {
 			return Index, Term, IsLeader
 		} else {
 			rf.mu.Unlock()
+			fmt.Println("here0")
 			return -1, -1, false
 		}
 	}
+	fmt.Println("here1")
 	return -1, -1, false
 }
 
@@ -430,7 +435,7 @@ func (rf *Raft) updateCommitForLeader() bool {
 			}
 		}
 
-		if granted >= len(rf.Peers)/2+1 {
+		if granted >= rf.PeerNumber/2+1 {
 			lastCommittedIndex = beginIndex
 		}
 	}
@@ -462,12 +467,18 @@ func (rf *Raft) persist() {
 		data := w.Bytes()
 		rf.persister.SaveRaftState(data)
 	} else {
-		fileName := strconv.Itoa(rf.Me) + ".yys"
+		fileName := rf.PeersRun[rf.Me] + ".yys"
 		ofile, _ := os.Create(fileName)
 		e := json.NewEncoder(ofile)
 		e.Encode(rf.Term)
 		e.Encode(rf.VotedFor)
-		e.Encode(rf.Log)
+		e.Encode(len(rf.Log))
+		for i := 0; i < len(rf.Log); i++ {
+			e.Encode(rf.Log[i].Command)
+			e.Encode(rf.Log[i].Id)
+			e.Encode(rf.Log[i].Index)
+			e.Encode(rf.Log[i].Term)
+		}
 	}
 }
 

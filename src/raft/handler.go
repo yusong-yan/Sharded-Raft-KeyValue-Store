@@ -1,11 +1,21 @@
 package raft
 
 func (rf *Raft) sendRequestVote(server int, args *RequestVoteArgs, reply *RequestVoteReply) bool {
-	ok := rf.Peers[server].Call("Raft.HandleRequestVote", args, reply)
+	var ok bool
+	if rf.Test {
+		ok = rf.Peers[server].Call("Raft.HandleRequestVote", args, reply)
+	} else {
+		ok = rf.call("Raft.HandleRequestVoteRun", rf.PeersRun[server], args, reply)
+	}
 	return ok
 }
 func (rf *Raft) sendAppendEntries(server int, args *AppendEntriesArgs, reply *AppendEntriesReply) bool {
-	ok := rf.Peers[server].Call("Raft.HandleAppendEntries", args, reply)
+	var ok bool
+	if rf.Test {
+		ok = rf.Peers[server].Call("Raft.HandleAppendEntries", args, reply)
+	} else {
+		ok = rf.call("Raft.HandleAppendEntriesRun", rf.PeersRun[server], args, reply)
+	}
 	return ok
 }
 
