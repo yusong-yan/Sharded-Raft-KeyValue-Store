@@ -36,11 +36,11 @@ func call(rpcname string, server string, args interface{}, reply interface{}) bo
 
 func (ck *Clerk) startUserInterface() {
 	for {
-		fmt.Println("-----------------------------------------")
+		fmt.Println("\n\n-----------------------------------------")
 		fmt.Println(" 1. Append")
 		fmt.Println(" 2. Get ")
 		fmt.Println(" 3. Put")
-		fmt.Print("-----------------------------------------\n\n")
+		fmt.Print("-----------------------------------------\n")
 		fmt.Print(" Select a option ->: ")
 		var op string
 		fmt.Scan(&op)
