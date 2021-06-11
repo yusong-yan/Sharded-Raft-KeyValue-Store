@@ -14,8 +14,13 @@ kvTest3A:
 kvTest3B: 
 	cd test/kvraft && go test -run 3B
 
-#run client or server
+# Run client or server.
 client:
 	cd src/runner/crunner/main && go run crunner.go
 server:
 	cd src/runner/srunner/main && go run srunner.go
+# Usually you should run 3 or more servers and as many clients as you want
+
+# for server, you should give a port number
+# because the number of servers machine should be the same all the time
+# checkout src/runner/srunner/main/servers.txt to see the port numbers, and choose one of it

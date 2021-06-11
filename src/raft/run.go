@@ -7,14 +7,6 @@ import (
 	"strconv"
 )
 
-type Op struct {
-	OpTask string
-	Key    string
-	Value  string
-	Client int64
-	Id     int64
-}
-
 func MakeRun(rf *Raft, peersRun []string, me int, applyCh chan ApplyMsg) *Raft {
 	rf.PeersRun = peersRun
 	rf.Test = false
@@ -22,39 +14,6 @@ func MakeRun(rf *Raft, peersRun []string, me int, applyCh chan ApplyMsg) *Raft {
 	rf.PeerNumber = len(peersRun)
 	setRaft(rf, me, applyCh)
 	return rf
-}
-
-func (rf *Raft) Connect() {
-	rf.mu.Lock()
-	defer rf.mu.Unlock()
-	rf.Network = Connect
-}
-
-func (rf *Raft) Disconnect() {
-	rf.mu.Lock()
-	defer rf.mu.Unlock()
-	rf.Network = Disconnect
-}
-
-func (rf *Raft) PrintLog() {
-	rf.mu.Lock()
-	var state string
-	if rf.State == Leader {
-		state = "Leader"
-	} else if rf.State == Cand {
-		state = "Candidate"
-	} else {
-		state = "Follwer"
-	}
-	fmt.Println("-----------------------------------------")
-	fmt.Println(state, " with ", rf.Term, " have LOG:")
-	for _, vs := range rf.Log {
-		fmt.Print("Command: ")
-		fmt.Print(vs.Command)
-		fmt.Println()
-	}
-	fmt.Print("-----------------------------------------\n\n")
-	rf.mu.Unlock()
 }
 
 //wrapper for call to check network status
@@ -110,4 +69,37 @@ func (rf *Raft) checkNetwork() error {
 		return errors.New("SERVER " + strconv.Itoa(rf.Me) + " DISCONNECT")
 	}
 	return nil
+}
+
+func (rf *Raft) Connect() {
+	rf.mu.Lock()
+	defer rf.mu.Unlock()
+	rf.Network = Connect
+}
+
+func (rf *Raft) Disconnect() {
+	rf.mu.Lock()
+	defer rf.mu.Unlock()
+	rf.Network = Disconnect
+}
+
+func (rf *Raft) PrintLog() {
+	rf.mu.Lock()
+	var state string
+	if rf.State == Leader {
+		state = "Leader"
+	} else if rf.State == Cand {
+		state = "Candidate"
+	} else {
+		state = "Follwer"
+	}
+	fmt.Println("-----------------------------------------")
+	fmt.Println(state, " with ", rf.Term, " have LOG:")
+	for _, vs := range rf.Log {
+		fmt.Print("Command: ")
+		fmt.Print(vs.Command)
+		fmt.Println()
+	}
+	fmt.Print("-----------------------------------------\n\n")
+	rf.mu.Unlock()
 }
