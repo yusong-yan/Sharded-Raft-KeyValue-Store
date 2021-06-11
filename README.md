@@ -1,5 +1,5 @@
 # Sharded-RaftKV
 
 ##### Raft and storage system can be tested
-##### Checkout makefile to start server and test server
-##### Files have been reorganized, so the tests and main program is separated. 
+##### Checkout makefile to run the server and test the server
+##### Files have been reorganized differently from what MIT provided, so the tests and main program is separated. 
