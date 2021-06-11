@@ -20,7 +20,7 @@ func readfile(fileName string) []string {
 	if err != nil {
 		log.Fatalf("cannot read %v", file)
 	}
-	ff := func(r rune) bool { return !unicode.IsNumber(r) && !unicode.IsLetter(r) }
+	ff := func(r rune) bool { return unicode.IsSpace(r) }
 	words := strings.FieldsFunc(string(content), ff)
 	return words
 }
