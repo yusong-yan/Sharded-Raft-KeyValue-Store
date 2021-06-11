@@ -48,6 +48,7 @@ func (kv *KVServer) Get(args *GetArgs, reply *GetReply) {
 		if Success {
 			for i := 0; i < 10; i++ {
 				if kv.existIdWithLock(args.Id, args.Client) {
+					// this get operation has been commit to the database
 					if kv.existKeyWithLock(args.Key) {
 						kv.mu.Lock()
 						reply.Value = kv.storage[args.Key]
@@ -79,6 +80,7 @@ func (kv *KVServer) PutAppend(args *PutAppendArgs, reply *PutAppendReply) {
 		if Success {
 			for i := 0; i < 10; i++ {
 				if kv.existIdWithLock(args.Id, args.Client) {
+					//this append or put operation has been commit to the database
 					if kv.existKeyWithLock(args.Key) {
 						reply.Err = OK
 						return
@@ -112,6 +114,8 @@ func (kv *KVServer) listenApplyCh() {
 		var curOp Op
 		curOp = applyMessage.Command.(Op)
 		kv.mu.Lock()
+		//if the operation hasn't been commit to database, just do it
+		//otherwise, skip it
 		if !kv.existId(curOp.Id, curOp.Client) {
 			if curOp.OpTask == Appendd && kv.existKey(curOp.Key) {
 				kv.storage[curOp.Key] += curOp.Value
@@ -121,6 +125,7 @@ func (kv *KVServer) listenApplyCh() {
 		}
 		_, exist := kv.idTable[curOp.Client]
 		if !exist {
+			// if haven't seend this client before, add it to id table
 			kv.idTable[curOp.Client] = map[int64]Op{}
 		}
 		kv.idTable[curOp.Client][curOp.Id] = curOp
