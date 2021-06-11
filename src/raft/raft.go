@@ -43,12 +43,14 @@ type Raft struct {
 
 func Make(peers []*labrpc.ClientEnd, me int,
 	persister *Persister, applyCh chan ApplyMsg) *Raft {
+	//test will call this make
 	rf := &Raft{}
 	rf.Peers = peers
 	rf.PeerNumber = len(peers)
 	rf.Test = true
 	rf.persister = persister
 	setRaft(rf, me, applyCh)
+
 	rf.readPersist(persister.ReadRaftState())
 	return rf
 }
@@ -71,12 +73,12 @@ func setRaft(rf *Raft, me int, applyCh chan ApplyMsg) {
 	rf.ApplyChan = applyCh
 	rf.CommitIndex = 0
 	rf.LastApply = 0
-	for i := 0; i < rf.PeerNumber; i++ {
-		server := i
-		rf.NextIndex[server] = rf.getLastLogEntryWithoutLock().Index + 1
-		rf.MatchIndex[server] = 0
-		rf.PeerAlive[server] = true
-	}
+	// for i := 0; i < rf.PeerNumber; i++ {
+	// 	server := i
+	// 	rf.NextIndex[server] = rf.getLastLogEntryWithoutLock().Index + 1
+	// 	rf.MatchIndex[server] = 0
+	// 	rf.PeerAlive[server] = true
+	// }
 	go rf.startElection()
 }
 
