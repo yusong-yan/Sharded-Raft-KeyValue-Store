@@ -96,14 +96,17 @@ func (rf *Raft) startElection() {
 		for !rf.killed() {
 			select {
 			case <-ticker.C:
+				//no leader, join election during the intervalTime
 				interval := generateTime()
 				ticker = time.NewTicker(time.Duration(interval) * time.Millisecond)
 				go func() {
 					electionResult <- rf.startAsCand(interval)
 				}()
 			case <-rf.ReceiveHB:
+				//reset ticker since there is a leader
 				ticker = time.NewTicker(time.Duration(generateTime()) * time.Millisecond)
 			case a := <-electionResult:
+				//if Win, break the follwer loop and become a leader
 				if a == Win {
 					break Loop
 				}
@@ -113,12 +116,15 @@ func (rf *Raft) startElection() {
 
 		ticker.Stop()
 		go rf.startAsLeader()
+		//wait to become a follwer
 		<-rf.BecomeFollwerFromLeader
 	}
 }
 
 func (rf *Raft) startAsCand(interval int) int {
 	cond := sync.NewCond(&rf.mu)
+	// cand only a allow to become leader during the interval time. If it take longer
+	// than interval time, this cand shouldn't be leader
 	var needReturn bool
 	needReturn = false
 	go func(needReturn *bool, cond *sync.Cond) {
@@ -152,7 +158,7 @@ func (rf *Raft) startAsCand(interval int) int {
 
 		go func() {
 			ok := rf.sendRequestVote(server, &args, &reply)
-			//Handle Reply
+			//if the rpc couldn't reach that server or pass interval time, just end this thread
 			if !ok || needReturn {
 				rf.mu.Lock()
 				hearedBack++
@@ -162,7 +168,8 @@ func (rf *Raft) startAsCand(interval int) int {
 			}
 			rf.mu.Lock()
 			hearedBack++
-			if reply.Term > rf.Term && rf.State == Cand {
+			if reply.Term > rf.Term && rf.State != Follwer {
+				// if other node has high term, and you are still not follwer, become a follwer
 				rf.ReceiveHB <- true
 				rf.setFollwer()
 				rf.Term = reply.Term
@@ -179,7 +186,7 @@ func (rf *Raft) startAsCand(interval int) int {
 			rf.mu.Unlock()
 		}()
 	}
-	//wait
+	//wait.
 	rf.mu.Lock()
 	for hearedBack != rf.PeerNumber && votes <= rf.PeerNumber/2 && needReturn == false && rf.State == Cand {
 		cond.Wait()
@@ -198,11 +205,16 @@ func (rf *Raft) startAsLeader() {
 	rf.mu.Lock()
 	for i := 0; i < rf.PeerNumber; i++ {
 		server := i
+		// assume all the peer servers are dead, so that after the first heartbeat, leader
+		// can start StartOnePeerAppend to each servers to make other servers have the same
+		// log as this leader. It will also fix MatchIndex.
+		// OpenCommit set false, because only after StartOnePeerAppend, that server is open to commit
 		rf.NextIndex[server] = rf.getLastLogEntryWithoutLock().Index + 1
 		rf.MatchIndex[server] = 0
 		rf.PeerAlive[server] = false
 		rf.OpenCommit[server] = false
 		if (len(rf.Log)) > 0 {
+			// for figure 8
 			rf.Log[len(rf.Log)-1].Term = rf.Term
 		}
 	}
@@ -235,6 +247,7 @@ func (rf *Raft) sendHeartBeat() {
 			args.Term = rf.Term
 			args.Job = HeartBeat
 			if rf.OpenCommit[server] {
+				// commit all the log for this server
 				args.Job = CommitAndHeartBeat
 			}
 			rf.mu.Unlock()
@@ -245,6 +258,10 @@ func (rf *Raft) sendHeartBeat() {
 				ok := rf.sendAppendEntries(server, &args, &reply)
 				//Handle Reply
 				if !ok {
+					//if leader couldn't take to this machine, mark it as dead
+					//so it will save sometime for StartPeerAppend, because
+					//StartPeerAppend will not sendAppendEntries to this machine
+					//until sendHeartbeat detect this server is alive again
 					rf.mu.Lock()
 					rf.PeerAlive[server] = false
 					rf.OpenCommit[server] = false
@@ -252,6 +269,7 @@ func (rf *Raft) sendHeartBeat() {
 					return
 				}
 				rf.mu.Lock()
+				//become follwer is term is smaller
 				if reply.Term > rf.Term && rf.State == Leader {
 					rf.Term = reply.Term
 					rf.BecomeFollwerFromLeader <- true
@@ -260,6 +278,9 @@ func (rf *Raft) sendHeartBeat() {
 					rf.mu.Unlock()
 					return
 				}
+				//Now, you realize this server is back online, so do somthing to it
+				//Mark it alive and startOnePeerAppend to fix it log, then make it
+				//will also make it open to commit
 				if !rf.PeerAlive[server] && rf.State == Leader {
 					rf.PeerAlive[server] = true
 					go func() {
@@ -283,16 +304,10 @@ func (rf *Raft) Start(Command interface{}) (int, int, bool) {
 		rf.mu.Lock()
 		Term = rf.Term
 		newE := Entry{}
-		if Command != nil {
-			newE.Command = Command
-			newE.Index = rf.getLastLogEntryWithoutLock().Index + 1
-			newE.Term = rf.Term
-			rf.Log = append(rf.Log, newE)
-		} else {
-			if (len(rf.Log)) > 0 {
-				rf.Log[len(rf.Log)-1].Term = rf.Term
-			}
-		}
+		newE.Command = Command
+		newE.Index = rf.getLastLogEntryWithoutLock().Index + 1
+		newE.Term = rf.Term
+		rf.Log = append(rf.Log, newE)
 		Index = rf.getLastLogEntryWithoutLock().Index
 		rf.persist()
 		rf.mu.Unlock()
@@ -315,6 +330,8 @@ func (rf *Raft) Start(Command interface{}) (int, int, bool) {
 		for hearedBack != rf.PeerNumber && rf.CommitIndex < Index && rf.IsLeader {
 			cond.Wait()
 		}
+		//if rf.CommitIndex>=Index, it means that more than half of the machine are approve
+		//this commit
 
 		//decide
 		if !rf.IsLeader {
@@ -364,19 +381,23 @@ func (rf *Raft) StartOnePeerAppend(server int) bool {
 					break
 				}
 			} else {
+				// if it is not alive, just end this function
 				rf.mu.Unlock()
 				result = false
 				break
 			}
 
 			if reply.Success {
-				//update
+				// It means that this server have the exact same log as leader server
+				//update, make it open to commit so heartbeat will commit it
 				rf.mu.Lock()
 				rf.MatchIndex[server] = len(args.Entries) + args.PrevLogIndex
 				rf.NextIndex[server] = rf.MatchIndex[server] + 1
 				rf.OpenCommit[server] = true
 				rf.PeerAlive[server] = true
+				//check if there is over half machine approve the commit
 				if rf.updateCommitForLeader() && rf.IsLeader {
+					//if so, leader just commit it
 					rf.startApply(rf.CommitIndex)
 				}
 				rf.mu.Unlock()
