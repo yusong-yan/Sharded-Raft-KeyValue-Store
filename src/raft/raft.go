@@ -3,7 +3,6 @@ package raft
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"math/rand"
 	"os"
 	"sync"
@@ -55,7 +54,6 @@ func Make(peers []*labrpc.ClientEnd, me int,
 }
 
 func setRaft(rf *Raft, me int, applyCh chan ApplyMsg) {
-	//rf.setup()
 	rf.Me = me
 	rf.State = Follwer
 	rf.Log = []Entry{}
@@ -333,11 +331,9 @@ func (rf *Raft) Start(Command interface{}) (int, int, bool) {
 			return Index, Term, IsLeader
 		} else {
 			rf.mu.Unlock()
-			fmt.Println("here0")
 			return -1, -1, false
 		}
 	}
-	fmt.Println("here1")
 	return -1, -1, false
 }
 

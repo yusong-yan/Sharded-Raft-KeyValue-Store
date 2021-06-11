@@ -3,9 +3,6 @@ package raft
 import (
 	"errors"
 	"fmt"
-	"log"
-	"net"
-	"net/http"
 	"net/rpc"
 	"strconv"
 )
@@ -60,24 +57,6 @@ func (rf *Raft) PrintLog() {
 	rf.mu.Unlock()
 }
 
-func (rf *Raft) setup() {
-	//readfile
-	fmt.Println("\nAll peers:  ", rf.PeersRun)
-
-	//setup my own server
-	conn, err := net.Listen("tcp", ":"+rf.PeersRun[rf.Me])
-	if err != nil {
-		log.Fatal("Listen:", err)
-	}
-	err = rpc.RegisterName("Raft", rf)
-	if err != nil {
-		log.Fatal("Raft:", err)
-	}
-	rpc.HandleHTTP()
-	fmt.Println("\nSETUP SERVER DONE")
-	go http.Serve(conn, nil)
-}
-
 //wrapper for call to check network status
 func (rf *Raft) call(rpcname string, server string, args interface{}, reply interface{}) bool {
 	rf.mu.Lock()
@@ -126,10 +105,9 @@ func (rf *Raft) HandleRequestVoteRun(args *RequestVoteArgs, reply *RequestVoteRe
 
 func (rf *Raft) checkNetwork() error {
 	rf.mu.Lock()
+	defer rf.mu.Unlock()
 	if rf.Network == Disconnect {
-		rf.mu.Unlock()
 		return errors.New("SERVER " + strconv.Itoa(rf.Me) + " DISCONNECT")
 	}
-	rf.mu.Unlock()
 	return nil
 }
