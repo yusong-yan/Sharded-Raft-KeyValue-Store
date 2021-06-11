@@ -1,3 +1,4 @@
+#test raft protocal and storage system
 raftTestAll: 
 	cd test/raft && go test -run 2
 raftTest2A: 
@@ -12,6 +13,8 @@ kvTest3A:
 	cd test/kvraft && go test -run 3A
 kvTest3B: 
 	cd test/kvraft && go test -run 3B
+
+#run client or server
 client:
 	cd src/runner/crunner/main && go run crunner.go
 server:
