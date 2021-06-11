@@ -1,3 +1,6 @@
+#######Inorder to run client and server, modify src/runner/srunner/main/servers.txt
+#######to adjust number of machine, and also it's serveraddress with it's port
+
 #test raft protocal and storage system
 raftTestAll: 
 	cd test/raft && go test -run 2

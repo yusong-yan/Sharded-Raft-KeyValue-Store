@@ -73,12 +73,6 @@ func setRaft(rf *Raft, me int, applyCh chan ApplyMsg) {
 	rf.ApplyChan = applyCh
 	rf.CommitIndex = 0
 	rf.LastApply = 0
-	// for i := 0; i < rf.PeerNumber; i++ {
-	// 	server := i
-	// 	rf.NextIndex[server] = rf.getLastLogEntryWithoutLock().Index + 1
-	// 	rf.MatchIndex[server] = 0
-	// 	rf.PeerAlive[server] = true
-	// }
 	go rf.startElection()
 }
 

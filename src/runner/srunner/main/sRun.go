@@ -28,7 +28,7 @@ func readfile(fileName string) []string {
 }
 
 func main() {
-	fmt.Print("Please provide host port: ")
+	fmt.Print("Please provide serverAddress:port: ")
 	var port string
 	fmt.Scan(&port)
 	servers := readfile("servers.txt")
