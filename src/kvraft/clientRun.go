@@ -20,7 +20,7 @@ func MakeClerkRun(servers []string) *Clerk {
 
 //setup rpc
 func call(rpcname string, server string, args interface{}, reply interface{}) bool {
-	c, err := rpc.DialHTTP("tcp", ":"+server)
+	c, err := rpc.DialHTTP("tcp", server)
 	if err != nil {
 		return false
 	}

@@ -34,11 +34,7 @@ func StartKVServerRun(servers []string, me int, maxraftstate int) *KVServer {
 
 func (kv *KVServer) setup(port string) {
 	//setup my own server
-	conn, err := net.Listen("tcp", ":"+port)
-	if err != nil {
-		log.Fatal("Listen:", err)
-	}
-	err = rpc.RegisterName("KVServer", kv)
+	err := rpc.RegisterName("KVServer", kv)
 	if err != nil {
 		log.Fatal("KVServer:", err)
 	}
@@ -47,6 +43,10 @@ func (kv *KVServer) setup(port string) {
 		log.Fatal("Raft:", err)
 	}
 	rpc.HandleHTTP()
+	conn, err := net.Listen("tcp", port)
+	if err != nil {
+		log.Fatal("Listen:", err)
+	}
 	fmt.Println("\nSETUP KVSERVER DONE")
 	go http.Serve(conn, nil)
 }

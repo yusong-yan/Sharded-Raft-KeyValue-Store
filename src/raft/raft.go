@@ -129,7 +129,6 @@ func (rf *Raft) startAsCand(interval int) int {
 
 	//setup args and rf
 	hearedBack := 1
-	hearedBackSuccess := 1
 	votes := 1
 	args := RequestVoteArgs{}
 	rf.mu.Lock()
@@ -161,7 +160,6 @@ func (rf *Raft) startAsCand(interval int) int {
 			}
 			rf.mu.Lock()
 			hearedBack++
-			hearedBackSuccess++
 			if reply.Term > rf.Term && rf.State == Cand {
 				rf.ReceiveHB <- true
 				rf.setFollwer()
@@ -220,8 +218,6 @@ func (rf *Raft) startAsLeader() {
 
 func (rf *Raft) sendHeartBeat() {
 	if rf.getState() == Leader {
-		hearedBack := 1
-		hearedBackSuccess := 1
 		for s := 0; s < rf.PeerNumber; s++ {
 			server := s
 			if server == rf.Me {
@@ -248,15 +244,12 @@ func (rf *Raft) sendHeartBeat() {
 				//Handle Reply
 				if !ok {
 					rf.mu.Lock()
-					hearedBack++
 					rf.PeerAlive[server] = false
 					rf.OpenCommit[server] = false
 					rf.mu.Unlock()
 					return
 				}
 				rf.mu.Lock()
-				hearedBack++
-				hearedBackSuccess++
 				if reply.Term > rf.Term && rf.State == Leader {
 					rf.Term = reply.Term
 					rf.BecomeFollwerFromLeader <- true
@@ -284,7 +277,6 @@ func (rf *Raft) Start(Command interface{}) (int, int, bool) {
 	//check if ID exist
 	if IsLeader {
 		hearedBack := 1
-		hearedBackSuccess := 1
 		cond := sync.NewCond(&rf.mu)
 		rf.mu.Lock()
 		Term = rf.Term
@@ -308,12 +300,9 @@ func (rf *Raft) Start(Command interface{}) (int, int, bool) {
 				continue
 			}
 			go func() {
-				ok := rf.StartOnePeerAppend(server)
+				rf.StartOnePeerAppend(server)
 				rf.mu.Lock()
 				hearedBack++
-				if ok {
-					hearedBackSuccess++
-				}
 				cond.Signal()
 				rf.mu.Unlock()
 			}()
@@ -326,15 +315,12 @@ func (rf *Raft) Start(Command interface{}) (int, int, bool) {
 		}
 
 		//decide
-		if rf.IsLeader {
-			rf.mu.Unlock()
-			return Index, Term, IsLeader
-		} else {
-			rf.mu.Unlock()
-			return -1, -1, false
+		if !rf.IsLeader {
+			Index, Term, IsLeader = -1, -1, false
 		}
+		rf.mu.Unlock()
 	}
-	return -1, -1, false
+	return Index, Term, IsLeader
 }
 
 //fix one peer
