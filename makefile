@@ -18,6 +18,8 @@ kvTest3B:
 	cd test/kvraft && go test -run 3B
 
 # Run client or server.
+ip:
+	cd src/runner/ip/main && go run ip.go
 client:
 	cd src/runner/crunner/main && go run cRun.go
 server:
